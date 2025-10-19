@@ -4,6 +4,7 @@
 
 using System;
 using System.Diagnostics;
+using System.IO;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
@@ -110,6 +111,11 @@ internal sealed partial class CmdPalPikPakPage : DynamicListPage
 
             var remote = AppSettings.RemoteName;
             var dir = NormalizeDir(AppSettings.DefaultSaveDir);
+            var validateError = ValidateEnvironment(AppSettings.RclonePath, remote);
+            if (!string.IsNullOrEmpty(validateError))
+            {
+                return CommandResult.ShowToast(new ToastArgs { Message = validateError, Result = CommandResult.KeepOpen() });
+            }
             var (ok, stdout, stderr) = RunRcloneAddUrl(AppSettings.RclonePath, remote, dir, url);
             if (ok)
             {
@@ -119,6 +125,91 @@ internal sealed partial class CmdPalPikPakPage : DynamicListPage
             string msg = string.IsNullOrWhiteSpace(stderr) ? stdout : stderr;
             if (string.IsNullOrWhiteSpace(msg)) msg = "rclone failed to start.";
             return CommandResult.ShowToast(new ToastArgs { Message = $"Failed to add offline task: {TrimForSubtitle(msg)}", Result = CommandResult.KeepOpen() });
+        }
+    }
+
+    private static string? ValidateEnvironment(string rclonePath, string remote)
+    {
+        if (string.IsNullOrWhiteSpace(remote))
+        {
+            return "Remote name is empty. Open Settings to configure it.";
+        }
+
+        // If user specified an absolute path, check existence first
+        if (!string.IsNullOrWhiteSpace(rclonePath) && (rclonePath.Contains('\\') || rclonePath.Contains('/')))
+        {
+            try
+            {
+                if (!File.Exists(rclonePath))
+                {
+                    return $"rclone executable not found: {rclonePath}";
+                }
+            }
+            catch { /* ignore IO errors */ }
+        }
+
+        // Check rclone version quickly
+        var (verOk, _, verErr) = RunSmall("version", rclonePath, timeoutMs: 3000);
+        if (!verOk)
+        {
+            var hint = string.IsNullOrWhiteSpace(verErr) ? "Unable to execute rclone." : verErr;
+            return $"Cannot run rclone. Check path in Settings. Details: {TrimForSubtitle(hint)}";
+        }
+
+        // Verify remote exists via listremotes
+        var (lrOk, lrOut, _) = RunSmall("listremotes", rclonePath, timeoutMs: 4000);
+        if (lrOk)
+        {
+            var target = remote.EndsWith(":", StringComparison.Ordinal) ? remote : remote + ":";
+            var found = false;
+            using (var reader = new StringReader(lrOut ?? string.Empty))
+            {
+                string? line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    if (string.Equals(line.Trim(), target, StringComparison.OrdinalIgnoreCase))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found)
+            {
+                return $"Remote '{remote}' not found. Run 'rclone config' to create it, or update Remote name in Settings.";
+            }
+        }
+
+        return null;
+    }
+
+    private static (bool ok, string stdout, string stderr) RunSmall(string subcommand, string rclonePath, int timeoutMs)
+    {
+        try
+        {
+            using var p = new Process();
+            p.StartInfo = new ProcessStartInfo
+            {
+                FileName = string.IsNullOrWhiteSpace(rclonePath) ? "rclone" : rclonePath,
+                Arguments = subcommand,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+            p.Start();
+            if (!p.WaitForExit(timeoutMs))
+            {
+                try { p.Kill(true); } catch { }
+                return (false, string.Empty, "rclone timed out");
+            }
+            var outText = p.StandardOutput.ReadToEnd();
+            var errText = p.StandardError.ReadToEnd();
+            return (p.ExitCode == 0, outText, errText);
+        }
+        catch (Exception ex)
+        {
+            return (false, string.Empty, ex.Message);
         }
     }
 }

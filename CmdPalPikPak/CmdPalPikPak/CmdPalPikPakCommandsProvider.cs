@@ -16,7 +16,7 @@ public partial class CmdPalPikPakCommandsProvider : CommandProvider
         DisplayName = "PikPak";
         Icon = IconHelpers.FromRelativePath("Assets\\StoreLogo.png");
         _commands = [
-            new CommandItem(new CmdPalPikPakPage()) { Title = DisplayName },
+            new CommandItem(new CmdPalPikPakPage()) { Title = DisplayName, Icon = Icon },
         ];
     }
 
