@@ -65,6 +65,12 @@ internal sealed partial class AddOfflineForm : FormContent
       "placeholder": "e.g. PikPak",
       "value": "${defaults.remote}"
     }
+  ],
+  "actions": [
+    {
+      "type": "Action.Submit",
+      "title": "Add"
+    }
   ]
 }
 """;
