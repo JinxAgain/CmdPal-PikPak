@@ -29,6 +29,12 @@ internal static class AppSettings
         set => SetString("RclonePath", string.IsNullOrWhiteSpace(value) ? "rclone" : value.Trim());
     }
 
+    public static string RcloneRcAddr
+    {
+        get => GetString("RcloneRcAddr", "localhost:52345");
+        set => SetString("RcloneRcAddr", string.IsNullOrWhiteSpace(value) ? "localhost:52345" : value.Trim());
+    }
+
     private static string GetString(string key, string fallback)
     {
         try

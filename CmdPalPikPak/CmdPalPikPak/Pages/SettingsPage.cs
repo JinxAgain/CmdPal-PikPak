@@ -61,6 +61,13 @@ internal sealed partial class SettingsForm : FormContent
       "id": "rclone",
       "placeholder": "e.g. rclone or C:/Tools/rclone.exe",
       "value": "${defaults.rclone}"
+    },
+    {
+      "type": "Input.Text",
+      "label": "rclone RC address",
+      "id": "rcaddr",
+      "placeholder": "e.g. localhost:52345",
+      "value": "${defaults.rcaddr}"
     }
   ]
 }
@@ -71,12 +78,14 @@ internal sealed partial class SettingsForm : FormContent
   "defaults": {
     "remote": "{{AppSettings.RemoteName}}",
     "dir": "{{AppSettings.DefaultSaveDir}}",
-    "rclone": "{{AppSettings.RclonePath}}"
+    "rclone": "{{AppSettings.RclonePath}}",
+    "rcaddr": "{{AppSettings.RcloneRcAddr}}"
   }
 }
 """.Replace("{{AppSettings.RemoteName}}", EscapeForJson(AppSettings.RemoteName))
      .Replace("{{AppSettings.DefaultSaveDir}}", EscapeForJson(AppSettings.DefaultSaveDir))
-     .Replace("{{AppSettings.RclonePath}}", EscapeForJson(AppSettings.RclonePath));
+     .Replace("{{AppSettings.RclonePath}}", EscapeForJson(AppSettings.RclonePath))
+     .Replace("{{AppSettings.RcloneRcAddr}}", EscapeForJson(AppSettings.RcloneRcAddr));
     }
 
     public override CommandResult SubmitForm(string payload)
@@ -90,10 +99,12 @@ internal sealed partial class SettingsForm : FormContent
         string remote = ReadString(obj, "remote");
         string dir = ReadString(obj, "dir");
         string rclone = ReadString(obj, "rclone");
+        string rcaddr = ReadString(obj, "rcaddr");
 
         if (!string.IsNullOrWhiteSpace(remote)) AppSettings.RemoteName = remote.Trim();
         if (!string.IsNullOrWhiteSpace(dir)) AppSettings.DefaultSaveDir = dir.Trim();
         if (!string.IsNullOrWhiteSpace(rclone)) AppSettings.RclonePath = rclone.Trim();
+        if (!string.IsNullOrWhiteSpace(rcaddr)) AppSettings.RcloneRcAddr = rcaddr.Trim();
 
         return CommandResult.ShowToast(new ToastArgs
         {

@@ -119,6 +119,7 @@ internal sealed partial class CmdPalPikPakPage : DynamicListPage
             var (ok, stdout, stderr) = RunRcloneAddUrl(AppSettings.RclonePath, remote, dir, url);
             if (ok)
             {
+                RcloneHelpers.DelayedRefresh(AppSettings.RclonePath, remote, dir, AppSettings.RcloneRcAddr);
                 return CommandResult.ShowToast(new ToastArgs { Message = $"Submitted offline task to {remote}:{dir}.", Result = CommandResult.Hide() });
             }
 

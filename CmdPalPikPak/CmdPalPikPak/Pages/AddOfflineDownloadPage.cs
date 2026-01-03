@@ -4,6 +4,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Text.Json.Nodes;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
@@ -111,6 +112,7 @@ internal sealed partial class AddOfflineForm : FormContent
         var (ok, stdout, stderr) = RunRcloneAddUrl(AppSettings.RclonePath, remote, dir, url);
         if (ok)
         {
+            RcloneHelpers.DelayedRefresh(AppSettings.RclonePath, remote, dir, AppSettings.RcloneRcAddr);
             return CommandResult.ShowToast(new ToastArgs
             {
                 Message = $"Submitted offline task to {remote}:{dir}.",
@@ -165,6 +167,9 @@ internal sealed partial class AddOfflineForm : FormContent
             return (false, string.Empty, ex.Message);
         }
     }
+
+
+
 
     private static string ReadString(JsonObject obj, string key)
     {
